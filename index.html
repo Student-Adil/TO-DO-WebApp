@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Todoist-Like To-Do App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f6f8fa;
+    }
+    .nav {
+      display: flex;
+      justify-content: space-around;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 10px;
+      position: sticky;
+      top: 0;
+    }
+    .nav button {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 10px;
+    }
+    .nav button:hover {
+      color: #007bff;
+    }
+
+    .page {
+      display: none;
+      padding: 20px;
+    }
+
+    .active {
+      display: block;
+    }
+
+    input, select, button {
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    .task-item {
+      background: #fff;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .task-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .task-name {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .task-info {
+      font-size: 13px;
+      color: gray;
+    }
+
+    .task-done {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid #007bff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .task-done.checked {
+      background: #007bff;
+      color: white;
+    }
+
+    .progress-container {
+      margin-top: 20px;
+      background: #ddd;
+      border-radius: 20px;
+      height: 20px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #28a745;
+      text-align: center;
+      color: white;
+      line-height: 20px;
+      border-radius: 20px;
+      transition: width 0.3s;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="nav">
+    <button onclick="showPage('createPage')">📝 Add Task</button>
+    <button onclick="showPage('viewPage'); renderTasks()">✅ My Tasks</button>
+  </div>
+
+  <!-- Page 1 -->
+  <div id="createPage" class="page active">
+    <h2>Add New Task</h2>
+    <input type="text" id="taskName" placeholder="e.g. Do 30 minutes of yoga 🧘">
+    <input type="time" id="taskTime">
+    <select id="taskCategory">
+      <option value="Fitness">🏃 Fitness</option>
+      <option value="Appointments">📅 Appointments</option>
+      <option value="Groceries">🛒 Groceries</option>
+      <option value="Study">📖 Study</option>
+    </select>
+    <button onclick="addTask()">Add Task</button>
+  </div>
+
+  <!-- Page 2 -->
+  <div id="viewPage" class="page">
+    <h2>Today's Tasks</h2>
+    <div id="taskList"></div>
+
+    <div class="progress-container">
+      <div id="progressBar" class="progress-bar">0%</div>
+    </div>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem("todo-tasks")) || [];
+
+    function showPage(id) {
+      document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+    }
+
+    function saveTasks() {
+      localStorage.setItem("todo-tasks", JSON.stringify(tasks));
+    }
+
+    function addTask() {
+      const name = document.getElementById("taskName").value.trim();
+      const time = document.getElementById("taskTime").value;
+      const category = document.getElementById("taskCategory").value;
+      if (!name || !time) {
+        alert("Please enter task and time.");
+        return;
+      }
+
+      tasks.push({ name, time, category, completed: false });
+      saveTasks();
+
+      document.getElementById("taskName").value = "";
+      document.getElementById("taskTime").value = "";
+      document.getElementById("taskCategory").selectedIndex = 0;
+
+      alert("✅ Task added!");
+    }
+
+    function renderTasks() {
+      const container = document.getElementById("taskList");
+      container.innerHTML = "";
+
+      tasks.forEach((task, index) => {
+        const taskDiv = document.createElement("div");
+        taskDiv.className = "task-item";
+
+        const left = document.createElement("div");
+        left.className = "task-left";
+
+        const name = document.createElement("div");
+        name.className = "task-name";
+        name.innerText = task.name;
+
+        const info = document.createElement("div");
+        info.className = "task-info";
+        info.innerText = `${task.time} • ${task.category}`;
+
+        left.appendChild(name);
+        left.appendChild(info);
+
+        const check = document.createElement("div");
+        check.className = "task-done";
+        if (task.completed) check.classList.add("checked");
+        check.innerHTML = task.completed ? "✔️" : "";
+
+        check.onclick = () => {
+          tasks[index].completed = !tasks[index].completed;
+          saveTasks();
+          renderTasks();
+        };
+
+        taskDiv.appendChild(left);
+        taskDiv.appendChild(check);
+        container.appendChild(taskDiv);
+      });
+
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const done = tasks.filter(t => t.completed).length;
+      const total = tasks.length;
+      const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+
+      const bar = document.getElementById("progressBar");
+      bar.style.width = percent + "%";
+      bar.innerText = percent + "%";
+    }
+
+    // Optional: render on load
+    renderTasks();
+  </script>
+
+</body>
+</html>
